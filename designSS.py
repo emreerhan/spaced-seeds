@@ -31,13 +31,7 @@ def parse_args():
     return args
 
 
-def main():
-    # get run time parameters
-    args = parse_args()
-    nseeds = args.nseeds  # number of seeds
-    misses = args.misses  # number of allowed number of misses
-    seedlen = args.seedlen  # seed length
-    minlen = args.minlen
+def design_seed(nseeds, misses, seedlen, minlen):
     current_min_length = -1
     while minlen >= current_min_length:
         # initialize seeds
@@ -54,7 +48,7 @@ def main():
         for j in range(nseeds):
             for i in range(seedlen//2):
                 seed[nseeds-j-1][seedlen-i-1] = seed[j][i]
-                
+
         for j in range(nseeds):
             weight = 0
             for i in range(seedlen):
@@ -62,24 +56,33 @@ def main():
                     weight += 1
             if weight > current_min_length:
                 current_min_length = weight
-        
-    # output seeds
-    for j in range(nseeds):
-        weight = 0
-        for i in range(seedlen):
-            sys.stdout.write(str(seed[j][i]))
-            if seed[j][i] != 0:
-                weight += 1
-        sys.stdout.write("\t" + str(weight) + "\t" + str(seedlen-weight))
-        if weight > current_min_length:
-            current_min_length = weight
-        print()
-        
-    for j in range(nseeds):
-        for i in range(seedlen):
-            sys.stdout.write(str(seed[j][i]))
-        sys.stdout.write(" ")
+        # output seeds
+        for j in range(nseeds):
+            weight = 0
+            for i in range(seedlen):
+                sys.stdout.write(str(seed[j][i]))
+                if seed[j][i] != 0:
+                    weight += 1
+            sys.stdout.write("\t" + str(weight) + "\t" + str(seedlen-weight))
+            if weight > current_min_length:
+                current_min_length = weight
+            print()
+
+        for j in range(nseeds):
+            for i in range(seedlen):
+                sys.stdout.write(str(seed[j][i]))
+            sys.stdout.write(" ")
     print()
+
+
+def main():
+    # get run time parameters
+    args = parse_args()
+    nseeds = args.nseeds  # number of seeds
+    misses = args.misses  # number of allowed number of misses
+    seedlen = args.seedlen  # seed length
+    minlen = args.minlen
+    design_seed(nseeds, misses, seedlen, minlen)
 
 
 if __name__ == "__main__":
