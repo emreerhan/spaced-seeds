@@ -11,12 +11,12 @@ def search_sequence(sequence, spaced_seed, kmer):
     weights_to_kmers = {}
     j = 0
     for i in range(len(spaced_seed)):
-        if spaced_seed[i] == "1":
+        if spaced_seed[i] == '1':
             weights_to_kmers[i] = kmer[j]
             j += 1
 
     if not len(weights_to_kmers) == len(kmer):
-        raise ValueError("The length of the kmer must be the same as the weight of the spaced seed")
+        raise ValueError('The length of the kmer must be the same as the weight of the spaced seed')
     for i in range(len(sequence) - len(spaced_seed)):
         seed_in_sequence = True
         for index, nc in weights_to_kmers.items():
@@ -35,10 +35,10 @@ def determine_spaced_kmers(genome_sequence, spaced_seeds):
         k = len(spaced_seed)
         weighted_indexes = []
         for i in range(k):
-            if spaced_seed[i] == "1":
+            if spaced_seed[i] == '1':
                 weighted_indexes.append(i)
         for i in range(len(genome_sequence) - k):
-            kmer = ""
+            kmer = ''
             for index in weighted_indexes:
                 # Note: genome_sequence is a pyfaidx.Sequence
                 kmer += str(genome_sequence[i:i+k][index])
@@ -49,8 +49,8 @@ def determine_spaced_kmers(genome_sequence, spaced_seeds):
 
 def calculate_entropy(seed, s_size):
     smer_counts = {}
-    for i in itertools.product(["0", "1"], repeat=s_size):
-        key = "".join(i)
+    for i in itertools.product(['0', '1'], repeat=s_size):
+        key = ''.join(i)
         smer_counts[key] = 0
     for i in range(len(seed) - s_size + 1):
         smer = seed[i:i+s_size]
@@ -70,19 +70,19 @@ def get_random_seeds(k, w, num, random_seed=False):
     if random_seed:
         np.random.seed(random_seed)
     if num > comb(k, w):
-        raise ValueError("num cannot be greater than k choose w")
+        raise ValueError('num cannot be greater than k choose w')
     # Choose the indices to be 1
     seeds = []
     for _ in range(num):
         repeated_seed = True
         while repeated_seed:
-            seed = ""
+            seed = ''
             indices = np.random.choice([i for i in range(k)], size=w, replace=False)
             for i in range(k):
                 if i in indices:
-                    seed += "1"
+                    seed += '1'
                 else:
-                    seed += "0"
+                    seed += '0'
             repeated_seed = True if seed in seeds else False
         seeds.append(seed)
     return seeds
@@ -94,24 +94,26 @@ def main():
     ecoli_k12 = pyfaidx.Fasta('e_coli.fa.gz')[0][0:]
     ecoli_BW25113 = pyfaidx.Fasta('e_ecoli_BW25113.fa')[0][0:]
     yeast = pyfaidx.Fasta('Pichia_sorbitophila.fa')[0][0:]
-    # print(search_sequence("AAACAAAAGTAACG", "1000011", "CGT"))
+    genomes = {'ecoli k12': ecoli_k12}
+    # print(search_sequence('AAACAAAAGTAACG', '1000011', 'CGT'))
     k = 6
     w = 2
     num_seeds = 1
-    kmers = ["AC", "CT", "GA"]
+    kmers = ['AC', 'CT', 'GA']
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, 3)
-    data = pd.DataFrame(entropies, index=seeds, columns=["entropies"])
     print(seeds)
-    for genome in [ecoli_k12]:  # , ecoli_BW25113, yeast]:
-        hits = np.zeros(shape=(len(kmers), num_seeds), dtype=bool)
-        spaced_kmers_array = determine_spaced_kmers(genome, seeds)
-        for i in range(len(kmers)):
-            for j in range(len(spaced_kmers_array)):
-                hits[i, j] = (kmers[i] in spaced_kmers_array[j])
-        print(hits)
+    for kmer in kmers:
+        data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
+        for genome_name, genome in genomes.items():
+            spaced_kmers_array = determine_spaced_kmers(genome, seeds)
+            genome_hits = np.zeros(shape=num_seeds, dtype=bool)
+            for i in range(len(spaced_kmers_array)):
+                genome_hits[i] = kmer in spaced_kmers_array[i]
+            data[genome_name] = genome_hits
+        data.to_csv('kmer_{}.tsv'.format(kmer), sep='\t')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
