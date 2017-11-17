@@ -28,6 +28,25 @@ def search_sequence(sequence, spaced_seed, kmer):
     return False
 
 
+def determine_spaced_kmers(genome_sequence, spaced_seeds):
+    kmers_array = []
+    for spaced_seed in spaced_seeds:
+        kmers = set()
+        k = len(spaced_seed)
+        weighted_indexes = []
+        for i in range(k):
+            if spaced_seed[i] == "1":
+                weighted_indexes.append(i)
+        for i in range(len(genome_sequence) - k):
+            kmer = ""
+            for index in weighted_indexes:
+                # Note: genome_sequence is a pyfaidx.Sequence
+                kmer += str(genome_sequence[i:i+k][index])
+            kmers.add(kmer)
+        kmers_array.append(kmers)
+    return kmers_array
+
+
 def calculate_entropy(seed, s_size):
     smer_counts = {}
     for i in itertools.product(["0", "1"], repeat=s_size):
@@ -79,19 +98,19 @@ def main():
     k = 6
     w = 2
     num_seeds = 1
-    kmer = "AC"
+    kmers = ["AC", "CT", "GA"]
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, 3)
     data = pd.DataFrame(entropies, index=seeds, columns=["entropies"])
-    # data.to_csv("test2.tsv", sep='\t')
-    hits = np.zeros(shape=num_seeds, dtype=bool)
+    print(seeds)
     for genome in [ecoli_k12]:  # , ecoli_BW25113, yeast]:
-        for i in range(len(seeds)):
-            seed = seeds[i]
-            hits[i] = search_sequence(genome, seed, kmer)
-    data.append(hits)
-    data.to_csv("test.tsv", sep='\t')
+        hits = np.zeros(shape=(len(kmers), num_seeds), dtype=bool)
+        spaced_kmers_array = determine_spaced_kmers(genome, seeds)
+        for i in range(len(kmers)):
+            for j in range(len(spaced_kmers_array)):
+                hits[i, j] = (kmers[i] in spaced_kmers_array[j])
+        print(hits)
 
 
 if __name__ == "__main__":
