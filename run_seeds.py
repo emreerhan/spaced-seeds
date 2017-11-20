@@ -50,7 +50,7 @@ def determine_spaced_kmers(genome_sequence, spaced_seeds):
         for i in range(k):
             if spaced_seed[i] == '1':
                 weighted_indexes.append(i)
-        for i in range(len(genome_sequence) - k):
+        for i in range(len(genome_sequence) - k + 1):
             kmer = ''
             for index in weighted_indexes:
                 # Note: genome_sequence is a pyfaidx.Sequence
@@ -123,23 +123,23 @@ def main():
     yeast = pyfaidx.Fasta('Pichia_sorbitophila.fa')[0][0:]
     genomes = {'E. Coli k12': ecoli_k12, "E. Coli BW25113": ecoli_BW25113, "Pichia sorbitophila": yeast}
     # print(search_sequence('AAACAAAAGTAACG', '1000011', 'CGT'))
-    k = 60
-    w = 20
-    num_seeds = 20
+    k = 5
+    w = 2
+    num_seeds = 2
 
-    kmers = get_random_kmers(w, 20)
+    kmers = get_random_kmers(w, 2)
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, 3)
-    for kmer in kmers:
+    for genome_name, genome in genomes.items():
         data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
-        for genome_name, genome in genomes.items():
-            spaced_kmers_array = determine_spaced_kmers(genome, seeds)
+        spaced_kmers_array = determine_spaced_kmers(genome, seeds)
+        for kmer in kmers:
             genome_hits = np.zeros(shape=num_seeds, dtype=bool)
             for i in range(len(spaced_kmers_array)):
                 genome_hits[i] = kmer in spaced_kmers_array[i]
-            data[genome_name] = genome_hits
-        data.to_csv('kmer_{}.tsv'.format(kmer), sep='\t')
+            data[kmer] = genome_hits
+        data.to_csv('genome_{}.tsv'.format(genome_name), sep='\t')
 
 
 if __name__ == '__main__':
