@@ -1,4 +1,7 @@
 import argparse
+from matplotlib_venn import venn3
+from matplotlib_venn._venn3 import compute_venn3_subsets
+from matplotlib import pyplot as plt
 import designSS
 import pyfaidx
 import itertools
@@ -41,23 +44,20 @@ def search_sequence(sequence, spaced_seed, kmer):
     return False
 
 
-def determine_spaced_kmers(genome_sequence, spaced_seeds):
-    kmers_array = []
-    for spaced_seed in spaced_seeds:
-        kmers = set()
-        k = len(spaced_seed)
-        weighted_indexes = []
-        for i in range(k):
-            if spaced_seed[i] == '1':
-                weighted_indexes.append(i)
-        for i in range(len(genome_sequence) - k + 1):
-            kmer = ''
-            for index in weighted_indexes:
-                # Note: genome_sequence is a pyfaidx.Sequence
-                kmer += str(genome_sequence[i:i+k][index])
-            kmers.add(kmer)
-        kmers_array.append(kmers)
-    return kmers_array
+def determine_words(genome_sequence, spaced_seed):
+    kmers = set()
+    k = len(spaced_seed)
+    weighted_indexes = []
+    for i in range(k):
+        if spaced_seed[i] == '1':
+            weighted_indexes.append(i)
+    for i in range(len(genome_sequence) - k + 1):
+        kmer = ''
+        for index in weighted_indexes:
+            # Note: genome_sequence is a pyfaidx.Sequence
+            kmer += str(genome_sequence[i:i+k][index])
+        kmers.add(kmer)
+    return kmers
 
 
 def calculate_entropy(seed, s_size):
@@ -123,23 +123,25 @@ def main():
     yeast = pyfaidx.Fasta('Pichia_sorbitophila.fa')[0][0:]
     genomes = {'E. Coli k12': ecoli_k12, "E. Coli BW25113": ecoli_BW25113, "Pichia sorbitophila": yeast}
     # print(search_sequence('AAACAAAAGTAACG', '1000011', 'CGT'))
-    k = 5
-    w = 2
-    num_seeds = 2
+    k = 60
+    w = 20
+    num_seeds = 100
 
-    kmers = get_random_kmers(w, 2)
+    # kmers = get_random_kmers(w, 20)
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, 3)
-    for genome_name, genome in genomes.items():
-        data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
-        spaced_kmers_array = determine_spaced_kmers(genome, seeds)
-        for kmer in kmers:
-            genome_hits = np.zeros(shape=num_seeds, dtype=bool)
-            for i in range(len(spaced_kmers_array)):
-                genome_hits[i] = kmer in spaced_kmers_array[i]
-            data[kmer] = genome_hits
-        data.to_csv('genome_{}.tsv'.format(genome_name), sep='\t')
+
+    data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
+    genome_kmers = {}
+    for seed in seeds:
+        for genome_name, genome in genomes.items():
+            genome_kmers[genome_name] = determine_words(genome, seed)
+        venn3(genome_kmers.values(), genome_kmers.keys())
+        plt.savefig("seed_{}.png".format(seed))
+    # kmer_values = list(genome_kmers.values())
+    # compute_venn3_subsets(kmer_values[0], kmer_values[1], kmer_values[2])
+    # `data.to_csv('genome_{}.tsv'.format(genome_name), sep='\t')
 
 
 if __name__ == '__main__':
