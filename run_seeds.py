@@ -11,16 +11,18 @@ import pandas as pd
 from scipy.special import comb
 
 
-# def parse_args():
-#     parser = argparse.ArgumentParser(
-#         description="""Runs a number of spaced seeds against specified genomes
-#                     to determine if seed entropy affects specificity""")
-#     parser.add_argument("-i", "--input", type=str, help="Barcode whitelist path", required=True)
-#     parser.add_argument("-m", "--molecules", type=str, help="Molecules/amplicons fasta file", required=True)
-#     parser.add_argument("-o", "--output", type=str, help="Output file (default: stdout)")
-#     parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: no seed)")
-#     args = parser.parse_args()
-#     return args
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="""Runs a number of spaced seeds against specified genomes
+                    to determine if seed entropy affects specificity.""")
+    parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
+    parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
+    parser.add_argument("-w", "--weight", type=int, help="Number of weighted elements per seed", required=True)
+    parser.add_argument("-e", "--entropy-bits", type=int, required=True,
+                        help="Specify number of bits per seed for entropy calculation")
+    parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: no seed)")
+    args = parser.parse_args()
+    return args
 
 
 def search_sequence(sequence, spaced_seed, kmer):
@@ -117,20 +119,20 @@ def get_random_kmers(k, num, random_seed=False):
 
 def main():
     # seed = designSS.design_seed()
-    bases = ['A', 'C', 'G', 'T']
+    args = parse_args()
     ecoli_k12 = pyfaidx.Fasta('e_coli_small.fa')[0][0:]
     ecoli_BW25113 = pyfaidx.Fasta('e_coli_BW25113_small.fa')[0][0:]
     yeast = pyfaidx.Fasta('Pichia_sorbitophila_small.fa')[0][0:]
     genomes = {'E. Coli k12': ecoli_k12, "E. Coli BW25113": ecoli_BW25113, "Pichia sorbitophila": yeast}
     # print(search_sequence('AAACAAAAGTAACG', '1000011', 'CGT'))
-    k = 60
-    w = 20
-    num_seeds = 1000
+    k = args.seed_length
+    w = args.weight
+    num_seeds = args.num_seeds
 
     # kmers = get_random_kmers(w, 20)
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
-    entropies = calculate_entropy_vect(seeds, 2)
+    entropies = calculate_entropy_vect(seeds, args.entropy_bits)
     data_cols = list(combinations(genomes.keys(), 2))
     entropy_data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
     print(entropy_data)
@@ -146,17 +148,12 @@ def main():
         print(pairwise_intersections)
         kmer_data[index] = np.array(pairwise_intersections)
         index += 1
-        # venn3(genome_kmers.values(), genome_kmers.keys())
-        # plt.savefig("seed_{}.png".format(seed))
-    print(kmer_data)
+        kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
+        combined_data = kmer_data.join(entropy_data)
+        combined_data.to_csv('kmer_data.tsv', sep='\t')
     kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
-    print(kmer_data)
     combined_data = kmer_data.join(entropy_data)
-    # combined_data = pd.concat([entropy_data, kmer_data], axis=1)
     combined_data.to_csv('kmer_data.tsv', sep='\t')
-    # kmer_values = list(genome_kmers.values())
-    # compute_venn3_subsets(kmer_values[0], kmer_values[1], kmer_values[2])
-    # `data.to_csv('genome_{}.tsv'.format(genome_name), sep='\t')
 
 
 if __name__ == '__main__':
