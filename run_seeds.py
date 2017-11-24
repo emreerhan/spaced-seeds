@@ -1,6 +1,6 @@
 import argparse
+from itertools import combinations
 from matplotlib_venn import venn3
-from matplotlib_venn._venn3 import compute_venn3_subsets
 from matplotlib import pyplot as plt
 import designSS
 import pyfaidx
@@ -118,27 +118,42 @@ def get_random_kmers(k, num, random_seed=False):
 def main():
     # seed = designSS.design_seed()
     bases = ['A', 'C', 'G', 'T']
-    ecoli_k12 = pyfaidx.Fasta('e_coli.fa.gz')[0][0:]
-    ecoli_BW25113 = pyfaidx.Fasta('e_ecoli_BW25113.fa')[0][0:]
-    yeast = pyfaidx.Fasta('Pichia_sorbitophila.fa')[0][0:]
+    ecoli_k12 = pyfaidx.Fasta('e_coli_small.fa')[0][0:]
+    ecoli_BW25113 = pyfaidx.Fasta('e_coli_BW25113_small.fa')[0][0:]
+    yeast = pyfaidx.Fasta('Pichia_sorbitophila_small.fa')[0][0:]
     genomes = {'E. Coli k12': ecoli_k12, "E. Coli BW25113": ecoli_BW25113, "Pichia sorbitophila": yeast}
     # print(search_sequence('AAACAAAAGTAACG', '1000011', 'CGT'))
     k = 60
     w = 20
-    num_seeds = 100
+    num_seeds = 1000
 
     # kmers = get_random_kmers(w, 20)
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
-    entropies = calculate_entropy_vect(seeds, 3)
-
-    data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
+    entropies = calculate_entropy_vect(seeds, 2)
+    data_cols = list(combinations(genomes.keys(), 2))
+    entropy_data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
+    print(entropy_data)
+    kmer_data = np.zeros(shape=(num_seeds, len(genomes)), dtype=object)
     genome_kmers = {}
+    index = 0
     for seed in seeds:
         for genome_name, genome in genomes.items():
             genome_kmers[genome_name] = determine_words(genome, seed)
-        venn3(genome_kmers.values(), genome_kmers.keys())
-        plt.savefig("seed_{}.png".format(seed))
+        pairwise_intersections = []
+        for comb in combinations(genome_kmers.values(), 2):
+            pairwise_intersections.append(len(set.intersection(*comb)))
+        print(pairwise_intersections)
+        kmer_data[index] = np.array(pairwise_intersections)
+        index += 1
+        # venn3(genome_kmers.values(), genome_kmers.keys())
+        # plt.savefig("seed_{}.png".format(seed))
+    print(kmer_data)
+    kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
+    print(kmer_data)
+    combined_data = kmer_data.join(entropy_data)
+    # combined_data = pd.concat([entropy_data, kmer_data], axis=1)
+    combined_data.to_csv('kmer_data.tsv', sep='\t')
     # kmer_values = list(genome_kmers.values())
     # compute_venn3_subsets(kmer_values[0], kmer_values[1], kmer_values[2])
     # `data.to_csv('genome_{}.tsv'.format(genome_name), sep='\t')
