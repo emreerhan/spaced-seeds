@@ -15,6 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="""Runs a number of spaced seeds against specified genomes
                     to determine if seed entropy affects specificity.""")
+    parser.add_argument("-g", "--genomes", type=str, help="Paths to the genomes, comma delimited", required=True)
     parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
     parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
     parser.add_argument("-w", "--weight", type=int, help="Number of weighted elements per seed", required=True)
@@ -53,12 +54,13 @@ def determine_words(genome_sequence, spaced_seed):
     for i in range(k):
         if spaced_seed[i] == '1':
             weighted_indexes.append(i)
+    w = len(weighted_indexes)
     for i in range(len(genome_sequence) - k + 1):
-        kmer = ''
-        for index in weighted_indexes:
+        word = np.zeros(shape=w, dtype=str)
+        for j, weighted_index in zip(range(w), weighted_indexes):
             # Note: genome_sequence is a pyfaidx.Sequence
-            kmer += str(genome_sequence[i:i+k][index])
-        kmers.add(kmer)
+            word[j] = str(genome_sequence[i:i+k][weighted_index])
+        kmers.add("".join(word))
     return kmers
 
 
@@ -120,16 +122,14 @@ def get_random_kmers(k, num, random_seed=False):
 def main():
     # seed = designSS.design_seed()
     args = parse_args()
-    ecoli_k12 = pyfaidx.Fasta('e_coli_small.fa')[0][0:]
-    ecoli_BW25113 = pyfaidx.Fasta('e_coli_BW25113_small.fa')[0][0:]
-    yeast = pyfaidx.Fasta('Pichia_sorbitophila_small.fa')[0][0:]
-    genomes = {'E. Coli k12': ecoli_k12, "E. Coli BW25113": ecoli_BW25113, "Pichia sorbitophila": yeast}
-    # print(search_sequence('AAACAAAAGTAACG', '1000011', 'CGT'))
+    genomes_paths = args.genomes.split(",")
+    genomes = {}
+    for genome_path in genomes_paths:
+        genomes[genome_path] = pyfaidx.Fasta(genome_path)[0][0:]
     k = args.seed_length
     w = args.weight
     num_seeds = args.num_seeds
 
-    # kmers = get_random_kmers(w, 20)
     seeds = get_random_seeds(k, w, num_seeds)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
@@ -151,9 +151,6 @@ def main():
         kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
         combined_data = kmer_data.join(entropy_data)
         combined_data.to_csv('kmer_data.tsv', sep='\t')
-    kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
-    combined_data = kmer_data.join(entropy_data)
-    combined_data.to_csv('kmer_data.tsv', sep='\t')
 
 
 if __name__ == '__main__':
