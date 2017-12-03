@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("-e", "--entropy-bits", type=int, required=True,
                         help="Specify number of bits per seed for entropy calculation")
     parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: no seed)")
+    parser.add_argument("-o", "--output", type=str, help="Name of output .tsv file", required=True)
     args = parser.parse_args()
     return args
 
@@ -105,6 +106,12 @@ def get_random_seeds(k, w, num, random_seed=False):
     return seeds
 
 
+def sample_seeds(seeds, entropies, sample_size):
+    select_indexes = np.logspace(0, math.log10(len(entropies)), sample_size).astype(int)
+    sorted_entropies = np.sort(entropies)
+    return sorted_entropies[select_indexes]
+
+
 def get_random_kmers(k, num, random_seed=False):
     bases = ['A', 'C', 'G', 'T']
     if random_seed:
@@ -128,12 +135,15 @@ def main():
         genomes[genome_path] = pyfaidx.Fasta(genome_path)[0][0:]
     k = args.seed_length
     w = args.weight
+    output = args.output
     num_seeds = args.num_seeds
 
-    seeds = get_random_seeds(k, w, num_seeds)
+    seeds = get_random_seeds(k, w, 1000000)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
+    seeds = sample_seeds(seeds, entropies, num_seeds)
     data_cols = list(combinations(genomes.keys(), 2))
+    entropies = calculate_entropy_vect(seeds, args.entropy_bits)
     entropy_data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
     print(entropy_data)
     kmer_data = np.zeros(shape=(num_seeds, len(genomes)), dtype=object)
@@ -150,7 +160,7 @@ def main():
         index += 1
         kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
         combined_data = kmer_data.join(entropy_data)
-        combined_data.to_csv('kmer_data.tsv', sep='\t')
+        combined_data.to_csv(output, sep='\t')
 
 
 if __name__ == '__main__':
