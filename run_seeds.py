@@ -107,9 +107,10 @@ def get_random_seeds(k, w, num, random_seed=False):
 
 
 def sample_seeds(seeds, entropies, sample_size):
-    select_indexes = np.logspace(0, math.log10(len(entropies)), sample_size).astype(int)
-    sorted_entropies = np.sort(entropies)
-    return sorted_entropies[select_indexes]
+    select_indexes = np.logspace(0, math.log10(len(entropies)-1), sample_size).astype(int)
+    sorted_indexes = np.argsort(entropies)
+    indexes = np.sort(sorted_indexes[select_indexes])
+    return np.array(seeds)[indexes]
 
 
 def get_random_kmers(k, num, random_seed=False):
@@ -138,7 +139,8 @@ def main():
     output = args.output
     num_seeds = args.num_seeds
 
-    seeds = get_random_seeds(k, w, 1000000)
+    seeds = get_random_seeds(k, w, 1000)
+    print("Seeds generated")
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
     seeds = sample_seeds(seeds, entropies, num_seeds)
