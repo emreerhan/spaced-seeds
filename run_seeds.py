@@ -160,8 +160,8 @@ def main():
         print(pairwise_intersections)
         kmer_data[index] = np.array(pairwise_intersections)
         index += 1
-        kmer_data = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
-        combined_data = kmer_data.join(entropy_data)
+        kmer_data_df = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
+        combined_data = kmer_data_df.join(entropy_data)
         combined_data.to_csv(output, sep='\t')
 
 
