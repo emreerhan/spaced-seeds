@@ -1,9 +1,5 @@
 import argparse
-import random
 from itertools import combinations
-from matplotlib_venn import venn3
-from matplotlib import pyplot as plt
-import designSS
 import pyfaidx
 import itertools
 import math
@@ -16,13 +12,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="""Runs a number of spaced seeds against specified genomes
                     to determine if seed entropy affects specificity.""")
-    parser.add_argument("-g", "--genomes", type=str, help="Paths to the genomes, comma delimited", required=True)
+    # parser.add_argument("-g", "--genomes", type=str, help="Paths to the genomes, comma delimited", required=True)
     parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
     parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
     parser.add_argument("-w", "--weight", type=int, help="Number of weighted elements per seed", required=True)
     parser.add_argument("-e", "--entropy-bits", type=int, required=True,
                         help="Specify number of bits per seed for entropy calculation")
-    parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: no seed)")
+    parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: 42)", default=42)
     parser.add_argument("-o", "--output", type=str, help="Name of output .tsv file", required=True)
     args = parser.parse_args()
     return args
@@ -47,23 +43,6 @@ def search_sequence(sequence, spaced_seed, kmer):
         if seed_in_sequence:
             return True
     return False
-
-
-def determine_words(genome_sequence, spaced_seed):
-    kmers = set()
-    k = len(spaced_seed)
-    weighted_indexes = []
-    for i in range(k):
-        if spaced_seed[i] == '1':
-            weighted_indexes.append(i)
-    w = len(weighted_indexes)
-    for i in range(len(genome_sequence) - k + 1):
-        word = ['']*k
-        for j, weighted_index in zip(range(w), weighted_indexes):
-            # Note: genome_sequence is a pyfaidx.Sequence
-            word[j] = str(genome_sequence[i:i+k][weighted_index])
-        kmers.add("".join(word))
-    return kmers
 
 
 def calculate_entropy(seed, s_size):
@@ -107,17 +86,10 @@ def get_random_seeds(k, w, num, random_seed=False):
                     seed[i] = '1'
                 else:
                     seed[i] = '0'
-            seed = "".join(seed)
+            seed = "{}{}{}".format("1", "".join(seed), "1")
             repeated_seed = True if seed in seeds else False
         seeds.add(seed)
     return list(seeds)
-
-
-def sample_seeds(seeds, entropies, sample_size):
-    select_indexes = np.logspace(0, math.log10(len(entropies)-1), sample_size).astype(int)
-    sorted_indexes = np.argsort(entropies)
-    indexes = np.sort(sorted_indexes[select_indexes])
-    return np.array(seeds)[indexes]
 
 
 def get_random_kmers(k, num, random_seed=False):
@@ -139,44 +111,55 @@ def clean_header(i):
 
 
 def main():
-    # seed = designSS.design_seed()
     args = parse_args()
-    genomes_paths = args.genomes.split(",")
-    genomes = {}
-    for genome_path in genomes_paths:
-        genomes[genome_path] = pyfaidx.Fasta(genome_path)[0][0:]
-    k = args.seed_length
-    w = args.weight
-    output = args.output
-    output_file = open(output, 'w+')
+    k = args.seed_length - 2
+    w = args.weight - 2
     num_seeds = args.num_seeds
-
-    seeds = get_random_seeds(k, w, 10)
-    print("Seeds generated")
+    seeds = get_random_seeds(k, w, num_seeds, random_seed=args.random_seed)
     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
-    entropies = calculate_entropy_vect(seeds, args.entropy_bits)
-    seeds = sample_seeds(seeds, entropies, num_seeds)
-    data_cols = list(combinations(genomes.keys(), 2))
-    entropies = calculate_entropy_vect(seeds, args.entropy_bits)
-    entropy_data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
-    print(entropy_data)
-    kmer_data = np.zeros(shape=(num_seeds, len(genomes)), dtype=object)
-    genome_kmers = {}
-    index = 0
-    print('seeds', '\t'.join([clean_header(str(i)) for i in combinations(genomes.keys(), 2)]), 'entropies', sep='\t', file=output_file)
-    for seed in seeds:
-        for genome_name, genome in genomes.items():
-            genome_kmers[genome_name] = determine_words(genome, seed)
-        pairwise_intersections = []
-        for comb in combinations(genome_kmers.values(), 2):
-            pairwise_intersections.append(str(len(set.intersection(*comb))))
-        print(seeds[index], '\t'.join(pairwise_intersections), str(entropies[index]), sep='\t', file=output_file)
-        # kmer_data[index] = np.array(pairwise_intersections)
-        index += 1
-        # kmer_data_df = pd.DataFrame(kmer_data, index=seeds, columns=data_cols)
-        # combined_data = kmer_data_df.join(entropy_data)
-        # combined_data.to_csv(output, sep='\t')
+    entropies_1 = calculate_entropy_vect(seeds, 2)
+    entropies_2 = calculate_entropy_vect(seeds, 3)
+    entropies_3 = calculate_entropy_vect(seeds, 4)
+    data = pd.DataFrame({'2bit': entropies_1, '3bit': entropies_2, '4bit': entropies_3},
+                 index=seeds,
+                 columns=['2bit', '3bit', '4bit'])
+    data.to_csv(args.output, sep='\t')
+    print(data.describe())
 
+# def old_main():
+#     args = parse_args()
+#     genomes_paths = args.genomes.split(",")
+#     genomes = {}
+#     for genome_path in genomes_paths:
+#         genomes[genome_path] = pyfaidx.Fasta(genome_path)[0][0:]
+#     k = args.seed_length
+#     w = args.weight
+#     output = args.output
+#     output_file = open(output, 'w+', buffering=1)
+#     num_seeds = args.num_seeds
+#
+#     # seeds = get_random_seeds(k, w, 10)
+#     print("Seeds generated")
+#     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
+#     seeds = ['100'*20, '101000'*10, '100010'*10]
+#     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
+#     # seeds = sample_seeds(seeds, entropies, num_seeds)
+#     data_cols = list(combinations(genomes.keys(), 2))
+#     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
+#     entropy_data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
+#     print(entropy_data)
+#     kmer_data = np.zeros(shape=(num_seeds, len(genomes)), dtype=object)
+#     genome_kmers = {}
+#     index = 0
+#     print('seeds', '\t'.join([clean_header(str(i)) for i in combinations(genomes.keys(), 2)]), 'entropies', sep='\t', file=output_file)
+#     for seed in seeds:
+#         for genome_name, genome in genomes.items():
+#             genome_kmers[genome_name] = determine_words(genome, seed)
+#         pairwise_intersections = []
+#         for comb in combinations(genome_kmers.values(), 2):
+#             pairwise_intersections.append(str(len(set.intersection(*comb))))
+#         print(seeds[index], '\t'.join(pairwise_intersections), str(entropies[index]), sep='\t', file=output_file)
+#        index += 1
 
 if __name__ == '__main__':
     main()
