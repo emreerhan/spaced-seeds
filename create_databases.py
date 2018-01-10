@@ -2,6 +2,19 @@ import numpy as np
 import pandas as pd
 import math
 import pyfaidx
+import argparse
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="""Runs a number of spaced seeds against specified genomes
+                    to determine if seed entropy affects specificity.""")
+    parser.add_argument("-g", "--genomes", type=str, help="Paths to the genomes, comma delimited", required=True)
+    parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to sample", required=True)
+    parser.add_argument("-s", "--seeds", type=str, help="Seeds tsv file, output of make_seeds.py", required=True)
+    parser.add_argument("-o", "--output", type=str, help="Name of output .tsv file", required=True)
+    args = parser.parse_args()
+    return args
 
 
 def sample_seeds(seeds, entropies, sample_size):
@@ -29,9 +42,10 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
 
 
 def main():
-    genome = str(pyfaidx.Fasta('Data/e_coli.fa.gz')[0][0:])
+    args = parse_args()
+    genome = str(pyfaidx.Fasta(args.genomes)[0][0:])
     num_seeds = 3
-    data = pd.read_csv('test_seeds.tsv', sep='\t', index_col=0)
+    data = pd.read_csv(args.seeds, sep='\t', index_col=0)
     seeds = data.index.values
     sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
     print(sample)
@@ -39,7 +53,7 @@ def main():
     words_list = determine_words_vect(genome, sample)
     out_data = pd.DataFrame.from_dict(words_list.tolist())
     out_data.index = sample
-    out_data.to_csv('test_database.tsv', sep='\t')
+    out_data.T.to_csv(args.output, sep='\t')
 
 
 if __name__ == "__main__":
