@@ -44,7 +44,7 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
 def main():
     args = parse_args()
     genome = str(pyfaidx.Fasta(args.genomes)[0][0:])
-    num_seeds = 3
+    num_seeds = args.num_seeds
     data = pd.read_csv(args.seeds, sep='\t', index_col=0)
     seeds = data.index.values
     sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
