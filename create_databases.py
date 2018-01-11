@@ -51,12 +51,16 @@ def main():
     seeds = data.index.values
     prefix = "e_coli"
     seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
-    print(seed_sample)
     determine_words_vect = np.vectorize(determine_word_frequencies, excluded=['genome_sequence'])
     words_list = determine_words_vect(genome, seed_sample)
     for idx, words in enumerate(words_list):
         output = open('{}/seed{}.pkl'.format(prefix, idx), 'wb')
         pickle.dump(words, output)
+        output.close()
+    seed_output = open('{}/seeds.txt'.format(prefix), 'w')
+    for idx, seed in enumerate(seed_sample):
+        print(idx, '\t', seed, file=seed_output)
+    seed_output.close()
 
     # out_data = pd.DataFrame.from_dict(words_list.tolist())
     # out_data.index = seed_sample
