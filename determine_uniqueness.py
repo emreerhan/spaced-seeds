@@ -43,6 +43,13 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
     return kmers
 
 
+def determine_word_uniqueness(words_dict):
+    np_values = np.array(list(words_dict.values()))
+    unique_items_index = np_values == 1
+    p_uniqueness = len(np_values[unique_items_index]) / len(np_values)
+    return p_uniqueness
+
+
 def main():
     args = parse_args()
     genome = str(pyfaidx.Fasta(args.genomes)[0][0:])
@@ -53,14 +60,20 @@ def main():
     seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
     determine_words_vect = np.vectorize(determine_word_frequencies, excluded=['genome_sequence'])
     words_list = determine_words_vect(genome, seed_sample)
-    for idx, words in enumerate(words_list):
-        output = open('{}/seed{}.pkl'.format(prefix, idx), 'wb')
-        pickle.dump(words, output)
-        output.close()
-    seed_output = open('{}/seeds.txt'.format(prefix), 'w')
-    for idx, seed in enumerate(seed_sample):
-        print(idx, '\t', seed, file=seed_output)
-    seed_output.close()
+    deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
+    uniquenesses = deter_uniqueness_vect(words_list)
+    print("seed", "uniqueness")
+    for seed, uniqueness in zip(seed_sample, uniquenesses):
+        print(seed, uniqueness, sep='\t')
+
+    # for idx, words in enumerate(words_list):
+    #     output = open('{}/seed{}.pkl'.format(prefix, idx), 'wb')
+    #     pickle.dump(words, output)
+    #     output.close()
+    # seed_output = open('{}/seeds.txt'.format(prefix), 'w')
+    # for idx, seed in enumerate(seed_sample):
+    #     print(idx, '\t', seed, file=seed_output)
+    # seed_output.close()
 
     # out_data = pd.DataFrame.from_dict(words_list.tolist())
     # out_data.index = seed_sample
