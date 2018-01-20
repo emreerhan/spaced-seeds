@@ -40,18 +40,22 @@ def main():
     args = parse_args()
     k = args.seed_length
     w = args.weight
-    prob_transition = 0.1
+    prob_transition = 0.2
     num_seeds = args.num_seeds
     np.random.seed(args.random_seed)
     seeds = []
+    print('Generating {} seeds with k = {}, w = {}, p(transition) = {}'.format(num_seeds, k, w, prob_transition))
+    i = 0
     while len(seeds) < num_seeds:
+        i += 1
+        if i % 100000 == 0:
+            print('Cycle num ', i)
         # prob_transition += 0.001
         seed = make_low_entropy_seed(k-2, prob_transition)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w:
-            num_seeds += 1
-            if num_seeds % 50 == 0:
-                print('Seed: ', num_seeds)
+            if len(seeds) % 50 == 0:
+                print('Seed: ', len(seeds))
             seeds.append(seed)
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])
     entropies_1 = calculate_entropy_vect(seeds, 2)
