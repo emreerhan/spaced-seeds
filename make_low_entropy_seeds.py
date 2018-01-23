@@ -53,7 +53,7 @@ def main():
         # prob_transition += 0.001
         seed = make_low_entropy_seed(k-2, prob_transition)
         seed = "{}{}{}".format('1', seed, '1')
-        if seed.count('1') == w:
+        if seed.count('1') == w and seed not in seeds:
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
