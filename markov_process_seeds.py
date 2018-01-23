@@ -11,8 +11,8 @@ def parse_args():
     parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
     parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
     parser.add_argument("-w", "--weight", type=int, help="Number of weighted elements per seed", required=True)
-    parser.add_argument("-t", "--transition-probability", type=float, help="Transition probability for Markov process",
-                        required=True)
+    # parser.add_argument("-t", "--transition-probability", type=float, help="Transition probability for Markov process",
+    #                     required=True)
     # parser.add_argument("-e", "--entropy-bits", type=int, required=True,
     #                     help="Specify number of bits per seed for entropy calculation")
     parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: 42)", default=42)
@@ -25,7 +25,7 @@ def byte_to_string(byte_obj):
     return byte_obj.decode('UTF-8')
 
 
-def make_low_entropy_seed(length, prob_transition):
+def make_entropy_seed(length, prob_transition):
     seed = np.empty(length, np.string_)
     prior = [0.5, 0.5]
     transition_prob = [[1 - prob_transition, prob_transition],
@@ -45,20 +45,21 @@ def main():
     prob_transition = 1-args.transition_probability
     num_seeds = args.num_seeds
     np.random.seed(args.random_seed)
+    probability_range = np.linspace(0.001, 0.999, 2000)
     seeds = []
     print('Generating {} seeds with k = {}, w = {}, p(transition) = {}'.format(num_seeds, k, w, prob_transition))
     i = 0
     while len(seeds) < num_seeds:
         i += 1
-        if i % 100000 == 0:
-            print('Cycle num ', i)
-        # prob_transition += 0.001
-        seed = make_low_entropy_seed(k-2, prob_transition)
+        prob_transition = probability_range[i]
+        seed = make_entropy_seed(k-2, prob_transition)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w and seed not in seeds:
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
+        if i == 2000:
+            i = 0
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])
     entropies_1 = calculate_entropy_vect(seeds, 2)
     entropies_2 = calculate_entropy_vect(seeds, 3)
