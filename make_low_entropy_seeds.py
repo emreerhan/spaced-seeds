@@ -28,8 +28,8 @@ def byte_to_string(byte_obj):
 def make_low_entropy_seed(length, prob_transition):
     seed = np.empty(length, np.string_)
     prior = [0.5, 0.5]
-    transition_prob = [[prob_transition, 1 - prob_transition],
-                       [1 - prob_transition, prob_transition]]
+    transition_prob = [[1 - prob_transition, prob_transition],
+                       [prob_transition, 1 - prob_transition]]
     seed[0] = np.random.choice(['1', '0'], p=prior, size=1)[0]
     for i in range(1, length):
         last_char = int(seed[i-1])
