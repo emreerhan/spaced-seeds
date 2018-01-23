@@ -45,13 +45,16 @@ def main():
     prob_transition = 1-args.transition_probability
     num_seeds = args.num_seeds
     np.random.seed(args.random_seed)
-    probability_range = np.linspace(0.001, 0.999, 2000)
+    prob_min = 0.001
+    prob_max = 0.999
+    probability_range = np.linspace(prob_min, prob_max, 2000)
     seeds = []
-    print('Generating {} seeds with k = {}, w = {}, p(transition) = {}'.format(num_seeds, k, w, prob_transition))
+    print('Generating {} seeds with k = {}, w = {}, p(transition) ∈ [{}, {}]'.format(
+        num_seeds, k, w, prob_transition, prob_min, prob_max))
     i = 0
     while len(seeds) < num_seeds:
-        i += 1
         prob_transition = probability_range[i]
+        i += 1
         seed = make_entropy_seed(k-2, prob_transition)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w and seed not in seeds:
