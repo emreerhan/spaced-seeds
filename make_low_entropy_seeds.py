@@ -11,6 +11,8 @@ def parse_args():
     parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
     parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
     parser.add_argument("-w", "--weight", type=int, help="Number of weighted elements per seed", required=True)
+    parser.add_argument("-t", "--transition-probability", type=float, help="Transition probability for Markov process",
+                        required=True)
     # parser.add_argument("-e", "--entropy-bits", type=int, required=True,
     #                     help="Specify number of bits per seed for entropy calculation")
     parser.add_argument("-s", "--random-seed", type=int, help="Define a seed (default: 42)", default=42)
@@ -40,7 +42,7 @@ def main():
     args = parse_args()
     k = args.seed_length
     w = args.weight
-    prob_transition = 0.2
+    prob_transition = 1-args.transition_probability
     num_seeds = args.num_seeds
     np.random.seed(args.random_seed)
     seeds = []
