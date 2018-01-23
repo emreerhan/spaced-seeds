@@ -57,7 +57,8 @@ def main():
     data = pd.read_csv(args.seeds, sep='\t', index_col=0)
     seeds = data.index.values
     prefix = "e_coli"
-    seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
+    # seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
+    seed_sample = seeds
     determine_words_vect = np.vectorize(determine_word_frequencies, excluded=['genome_sequence'])
     words_list = determine_words_vect(genome, seed_sample)
     deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
