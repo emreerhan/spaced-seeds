@@ -20,7 +20,8 @@ def parse_args():
 
 
 def sample_seeds(seeds, entropies, sample_size):
-    select_indexes = np.logspace(0, math.log10(len(entropies)-1), sample_size).astype(int)
+    # select_indexes = np.logspace(0, math.log10(len(entropies)-1), sample_size).astype(int)
+    select_indexes = np.linspace(0, len(entropies)-1, sample_size, dtype=int) #.astype(int)
     sorted_indexes = np.argsort(entropies)
     indexes = np.sort(sorted_indexes[select_indexes])
     return np.array(seeds)[indexes]
@@ -57,8 +58,8 @@ def main():
     data = pd.read_csv(args.seeds, sep='\t', index_col=0)
     seeds = data.index.values
     prefix = "e_coli"
-    # seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
-    seed_sample = seeds
+    seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
+    # seed_sample = seeds
     determine_words_vect = np.vectorize(determine_word_frequencies, excluded=['genome_sequence'])
     words_list = determine_words_vect(genome, seed_sample)
     deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
