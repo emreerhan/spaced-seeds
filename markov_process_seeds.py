@@ -42,15 +42,15 @@ def main():
     args = parse_args()
     k = args.seed_length
     w = args.weight
-    prob_transition = 1-args.transition_probability
+    # prob_transition = 1-args.transition_probability
     num_seeds = args.num_seeds
     np.random.seed(args.random_seed)
     prob_min = 0.001
     prob_max = 0.999
     probability_range = np.linspace(prob_min, prob_max, 2000)
-    seeds = []
+    seeds = [] 
     print('Generating {} seeds with k = {}, w = {}, p(transition) ∈ [{}, {}]'.format(
-        num_seeds, k, w, prob_transition, prob_min, prob_max))
+        num_seeds, k, w, prob_min, prob_max))
     i = 0
     while len(seeds) < num_seeds:
         prob_transition = probability_range[i]
