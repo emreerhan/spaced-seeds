@@ -52,15 +52,19 @@ def main():
     print('Generating {} seeds with k = {}, w = {}, p(transition) ∈ [{}, {}]'.format(
         num_seeds, k, w, prob_min, prob_max))
     i = 0
+    temperature = 1
     while len(seeds) < num_seeds:
         prob_transition = probability_range[i]
-        i += 1
+        i += temperature
         seed = make_entropy_seed(k-2, prob_transition)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w and seed not in seeds:
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
+            temperature = int(1.5*temperature+100)
+        if temperature > 1:
+            temperature -= 1
         if i == 2000:
             i = 0
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])
