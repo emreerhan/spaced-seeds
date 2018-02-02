@@ -27,7 +27,17 @@ def sample_seeds(seeds, entropies, sample_size):
     return np.array(seeds)[indexes]
 
 
+def reverse_complement(numpy_sequence):
+    complement = {b'A': b'T',
+                  b'T': b'A',
+                  b'C': b'G',
+                  b'G': b'C'}
+    rev_seq = np.flipud(numpy_sequence)
+    return np.vectorize(lambda nt: complement[nt])(rev_seq)
+
+
 def determine_word_frequencies(genome_sequence, spaced_seed):
+    spaced_seed = str(spaced_seed)
     k = len(spaced_seed)
     weighted_indexes = []
     kmers = {}
@@ -36,11 +46,13 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
             weighted_indexes.append(i)
     w = len(weighted_indexes)
     for i in range(len(genome_sequence) - k + 1):
-        word = ['']*k
+        word = np.empty(w, 'S1')
         for j, weighted_index in zip(range(w), weighted_indexes):
             word[j] = genome_sequence[i:i+k][weighted_index]
-        word_str = "".join(word)
-        kmers[word_str] = kmers.get(word_str, 0) + 1
+        word_str = word.tostring().decode('utf-8')
+        reverse_word_str = reverse_complement(word).tostring().decode('utf-8')
+        canonical_word = min(word_str, reverse_word_str)
+        kmers[canonical_word] = kmers.get(canonical_word, 0) + 1
     return kmers
 
 
