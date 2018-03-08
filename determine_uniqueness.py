@@ -88,7 +88,6 @@ def main():
     kmers_list = determine_words_vect(genome, seed_sample)
     # kmers = determine_word_frequencies(genome, seed_sample[0])
     determine_unique_frames_vect = np.vectorize(determine_unique_frames, excluded=['genome_length', 'k'])
-    print(determine_unique_frames(kmers_list[0], len(genome), k))
     num_frames = len(genome) - k + 1
     # unique_frames_list = determine_unique_frames_vect(kmers_list, len(genome), k)
     unique_frames_list = np.empty((len(kmers_list), num_frames), dtype=np.bool)
@@ -97,11 +96,12 @@ def main():
     first_choices = np.random.choice(len(unique_frames_list), 10)
     second_choices = np.random.choice(len(unique_frames_list), 10)
     combined_uniqueness = np.logical_or(unique_frames_list[first_choices], unique_frames_list[second_choices])
-    unique_frames = sum(combined_uniqueness)
+    unique_frames = np.sum(combined_uniqueness.astype(np.int8), axis=1)/num_frames
 
-    # deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
-    # uniquenesses = deter_uniqueness_vect(words_list)
-    print("seed", "uniqueness")
+    deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
+    uniquenesses = deter_uniqueness_vect(kmers_list)
+    print(uniquenesses)
+    print("seed1", "seed2", "%unique frames")
     for seed1, seed2, uniqueness in zip(seed_sample[first_choices], seed_sample[second_choices], unique_frames):
         print(seed1, seed2, uniqueness, sep='\t')
 
