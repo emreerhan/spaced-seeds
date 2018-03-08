@@ -49,17 +49,28 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
         word = np.empty(w, 'S1')
         for j, weighted_index in zip(range(w), weighted_indexes):
             word[j] = genome_sequence[i:i+k][weighted_index]
-        word_str = word.tostring().decode('utf-8')
-        reverse_word_str = reverse_complement(word).tostring().decode('utf-8')
+        word_str = word.tostring() #.decode('utf-8')
+        reverse_word_str = reverse_complement(word).tostring() #.decode('utf-8')
         canonical_word = min(word_str, reverse_word_str)
-        kmers[canonical_word] = kmers.get(canonical_word, 0) + 1
+        # kmers[canonical_word] = False if canonical_word in kmers else True
+        kmers[canonical_word] = kmers[canonical_word] + [i] if canonical_word in kmers else [i]
     return kmers
+
+
+def determine_unique_frames(kmers, genome_length, k):
+    num_frames = genome_length - k + 1
+    frames_count = np.empty(num_frames, np.int8)
+    for frames in kmers.values():
+        for frame in frames:
+            if frames_count[frame] < 3:
+                frames_count[frame] += 1
+    return frames_count == 1
 
 
 def determine_word_uniqueness(words_dict):
     np_values = np.array(list(words_dict.values()))
-    unique_items_index = np_values == 1
-    p_uniqueness = len(np_values[unique_items_index]) / len(np_values)
+    # unique_items_index = np_values == True
+    p_uniqueness = len(np_values[np_values]) / len(np_values)
     return p_uniqueness
 
 
@@ -69,29 +80,30 @@ def main():
     num_seeds = args.num_seeds
     data = pd.read_csv(args.seeds, sep='\t', index_col=0)
     seeds = data.index.values
+    k = 60
     prefix = "e_coli"
     seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
     # seed_sample = seeds
     determine_words_vect = np.vectorize(determine_word_frequencies, excluded=['genome_sequence'])
-    words_list = determine_words_vect(genome, seed_sample)
-    deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
-    uniquenesses = deter_uniqueness_vect(words_list)
+    kmers_list = determine_words_vect(genome, seed_sample)
+    # kmers = determine_word_frequencies(genome, seed_sample[0])
+    determine_unique_frames_vect = np.vectorize(determine_unique_frames, excluded=['genome_length', 'k'])
+    print(determine_unique_frames(kmers_list[0], len(genome), k))
+    num_frames = len(genome) - k + 1
+    # unique_frames_list = determine_unique_frames_vect(kmers_list, len(genome), k)
+    unique_frames_list = np.empty((len(kmers_list), num_frames), dtype=np.bool)
+    for idx, kmers in enumerate(kmers_list):
+        unique_frames_list[idx] = determine_unique_frames(kmers, len(genome), k)
+    first_choices = np.random.choice(len(unique_frames_list), 10)
+    second_choices = np.random.choice(len(unique_frames_list), 10)
+    combined_uniqueness = np.logical_or(unique_frames_list[first_choices], unique_frames_list[second_choices])
+    unique_frames = sum(combined_uniqueness)
+
+    # deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
+    # uniquenesses = deter_uniqueness_vect(words_list)
     print("seed", "uniqueness")
-    for seed, uniqueness in zip(seed_sample, uniquenesses):
-        print(seed, uniqueness, sep='\t')
-
-    # for idx, words in enumerate(words_list):
-    #     output = open('{}/seed{}.pkl'.format(prefix, idx), 'wb')
-    #     pickle.dump(words, output)
-    #     output.close()
-    # seed_output = open('{}/seeds.txt'.format(prefix), 'w')
-    # for idx, seed in enumerate(seed_sample):
-    #     print(idx, '\t', seed, file=seed_output)
-    # seed_output.close()
-
-    # out_data = pd.DataFrame.from_dict(words_list.tolist())
-    # out_data.index = seed_sample
-    # out_data.T.to_csv(args.output, sep='\t')
+    for seed1, seed2, uniqueness in zip(seed_sample[first_choices], seed_sample[second_choices], unique_frames):
+        print(seed1, seed2, uniqueness, sep='\t')
 
 
 if __name__ == "__main__":
