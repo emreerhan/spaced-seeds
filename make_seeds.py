@@ -46,22 +46,30 @@ def search_sequence(sequence, spaced_seed, kmer):
 
 
 def calculate_entropy(seed, s_size):
-    smer_counts = {}
+    bit_counts = {}
     for i in itertools.product(['0', '1'], repeat=s_size):
         key = ''.join(i)
-        smer_counts[key] = 0
+        bit_counts[key] = 0
     for i in range(len(seed) - s_size + 1):
-        smer = seed[i:i+s_size]
-        smer_counts[smer] += 1
-    # print(smer_counts)
+        bit = seed[i:i+s_size]
+        bit_counts[bit] += 1
+    # print(bit_counts)
     # Calculate Shannon entropy
     entropy = 0
-    for smer, count in smer_counts.items():
+    for bit, count in bit_counts.items():
         if count == 0:
             continue
         num_substrings = len(seed) - s_size + 1
         entropy -= float(count)/float(num_substrings) * math.log(float(count)/float(num_substrings), 2)
     return entropy
+
+
+def calculate_moment(seed, pivot):
+    distances = []
+    for idx, i in enumerate(seed):
+        if i == '1':
+            distances.append(abs(pivot - idx)**2)
+    return sum(distances)
 
 
 def nCr(n, r):

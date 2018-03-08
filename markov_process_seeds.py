@@ -21,12 +21,8 @@ def parse_args():
     return args
 
 
-def byte_to_string(byte_obj):
-    return byte_obj.decode('UTF-8')
-
-
 def make_entropy_seed(length, prob_transition):
-    seed = np.empty(length, np.string_)
+    seed = np.empty(length, 'S1')
     prior = [0.5, 0.5]
     transition_prob = [[1 - prob_transition, prob_transition],
                        [prob_transition, 1 - prob_transition]]
@@ -34,8 +30,7 @@ def make_entropy_seed(length, prob_transition):
     for i in range(1, length):
         last_char = int(seed[i-1])
         seed[i] = np.random.choice(['1', '0'], p=transition_prob[last_char], size=1)[0]
-    byte_to_string_vect = np.vectorize(byte_to_string)
-    return "".join(byte_to_string_vect(seed))
+    return seed.tostring().decode('utf-8')
 
 
 def main():
@@ -52,19 +47,19 @@ def main():
     print('Generating {} seeds with k = {}, w = {}, p(transition) ∈ [{}, {}]'.format(
         num_seeds, k, w, prob_min, prob_max))
     i = 0
-    temperature = 1
+    # temperature = 1
     while len(seeds) < num_seeds:
         prob_transition = probability_range[i]
-        i += temperature
+    #    i += temperature
         seed = make_entropy_seed(k-2, prob_transition)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w and seed not in seeds:
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
-            temperature = int(1.5*temperature+100)
-        if temperature > 1:
-            temperature -= 1
+    #        temperature = int(1.5*temperature+100)
+    #    if temperature > 1:
+    #        temperature -= 1
         if i == 2000:
             i = 0
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])

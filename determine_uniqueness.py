@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
-import math
 import pyfaidx
 import argparse
-import pickle
+from pprint import pprint
 # import matplotlib.pyplot as plt
 
 
@@ -57,9 +56,8 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
     return kmers
 
 
-def determine_unique_frames(kmers, genome_length, k):
-    num_frames = genome_length - k + 1
-    frames_count = np.empty(num_frames, np.int8)
+def determine_unique_frames(kmers, num_frames):
+    frames_count = np.zeros(num_frames, dtype=np.int8)
     for frames in kmers.values():
         for frame in frames:
             if frames_count[frame] < 3:
@@ -74,6 +72,13 @@ def determine_word_uniqueness(words_dict):
     return p_uniqueness
 
 
+def fullprint(*args, **kwargs):
+    opt = np.get_printoptions()
+    np.set_printoptions(threshold=np.inf)
+    pprint(*args, **kwargs)
+    np.set_printoptions(**opt)
+
+
 def main():
     args = parse_args()
     genome = str(pyfaidx.Fasta(args.genomes)[0][0:])
@@ -81,6 +86,7 @@ def main():
     data = pd.read_csv(args.seeds, sep='\t', index_col=0)
     seeds = data.index.values
     k = 60
+    num_frames = len(genome) - k + 1
     prefix = "e_coli"
     seed_sample = sample_seeds(seeds, data['3bit'].values, num_seeds)
     # seed_sample = seeds
@@ -88,22 +94,28 @@ def main():
     kmers_list = determine_words_vect(genome, seed_sample)
     # kmers = determine_word_frequencies(genome, seed_sample[0])
     determine_unique_frames_vect = np.vectorize(determine_unique_frames, excluded=['genome_length', 'k'])
-    num_frames = len(genome) - k + 1
     # unique_frames_list = determine_unique_frames_vect(kmers_list, len(genome), k)
-    unique_frames_list = np.empty((len(kmers_list), num_frames), dtype=np.bool)
+    unique_frames_list = np.zeros((len(kmers_list), num_frames), dtype=np.bool)
     for idx, kmers in enumerate(kmers_list):
-        unique_frames_list[idx] = determine_unique_frames(kmers, len(genome), k)
-    first_choices = np.random.choice(len(unique_frames_list), 10)
-    second_choices = np.random.choice(len(unique_frames_list), 10)
+        unique_frames_list[idx] = determine_unique_frames(kmers, num_frames)
+    first_choices = np.random.choice(len(unique_frames_list), 3)
+    second_choices = np.random.choice(len(unique_frames_list), 3)
     combined_uniqueness = np.logical_or(unique_frames_list[first_choices], unique_frames_list[second_choices])
+    unique1s = np.sum(unique_frames_list[first_choices].astype(np.int8), axis=1)/num_frames
+    unique2s = np.sum(unique_frames_list[second_choices].astype(np.int8), axis=1)/num_frames
     unique_frames = np.sum(combined_uniqueness.astype(np.int8), axis=1)/num_frames
 
-    deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
-    uniquenesses = deter_uniqueness_vect(kmers_list)
-    print(uniquenesses)
-    print("seed1", "seed2", "%unique frames")
-    for seed1, seed2, uniqueness in zip(seed_sample[first_choices], seed_sample[second_choices], unique_frames):
-        print(seed1, seed2, uniqueness, sep='\t')
+    # deter_uniqueness_vect = np.vectorize(determine_word_uniqueness)
+    # uniquenesses = deter_uniqueness_vect(kmers_list)
+    # print(uniquenesses)
+    print("seed1", "seed2", "unique1s", "unique2s", "%unique frames")
+    for seed1, seed2, unique1, unique2, uniqueness in zip(seed_sample[first_choices], seed_sample[second_choices],
+                                                          unique1s, unique2s,
+                                                          unique_frames):
+        print(seed1, seed2, unique1, unique2, uniqueness, sep='\t')
+    print(unique_frames_list[first_choices])
+    print(unique_frames_list[second_choices])
+    print(combined_uniqueness)
 
 
 if __name__ == "__main__":
