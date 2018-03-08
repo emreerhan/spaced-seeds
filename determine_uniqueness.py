@@ -57,12 +57,11 @@ def determine_word_frequencies(genome_sequence, spaced_seed):
 
 
 def determine_unique_frames(kmers, num_frames):
-    frames_count = np.zeros(num_frames, dtype=np.int8)
+    frames_count = np.zeros(num_frames, dtype=np.bool)
     for frames in kmers.values():
-        for frame in frames:
-            if frames_count[frame] < 3:
-                frames_count[frame] += 1
-    return frames_count == 1
+        frames_count[frames] = True if len(frames) == 1 else False
+
+    return frames_count
 
 
 def determine_word_uniqueness(words_dict):
@@ -113,9 +112,6 @@ def main():
                                                           unique1s, unique2s,
                                                           unique_frames):
         print(seed1, seed2, unique1, unique2, uniqueness, sep='\t')
-    print(unique_frames_list[first_choices])
-    print(unique_frames_list[second_choices])
-    print(combined_uniqueness)
 
 
 if __name__ == "__main__":
