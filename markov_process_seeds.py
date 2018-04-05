@@ -6,11 +6,12 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Makes low entropy seeds using a Markov process. It's a dumb method...")
+        description="Makes seeds using a Markov process with a dynamic transition probability to generate low to high entropy seeds.")
     # parser.add_argument("-g", "--genomes", type=str, help="Paths to the genomes, comma delimited", required=True)
     parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
     parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
     parser.add_argument("-w", "--weight", type=int, help="Number of weighted elements per seed", required=True)
+    parser.add_argument("-p", "--palindromic", help="Whether seeds should be palindromic", action='store_true', dest='palindromic')
     # parser.add_argument("-t", "--transition-probability", type=float, help="Transition probability for Markov process",
     #                     required=True)
     # parser.add_argument("-e", "--entropy-bits", type=int, required=True,
@@ -21,7 +22,10 @@ def parse_args():
     return args
 
 
-def make_entropy_seed(length, prob_transition):
+def make_entropy_seed(length, prob_transition, palindromic=False):
+    even = length % 2 == 0
+    if palindromic:
+        length = np.floor(length/2).astype(int)
     seed = np.empty(length, 'S1')
     prior = [0.5, 0.5]
     transition_prob = [[1 - prob_transition, prob_transition],
@@ -30,6 +34,11 @@ def make_entropy_seed(length, prob_transition):
     for i in range(1, length):
         last_char = int(seed[i-1])
         seed[i] = np.random.choice(['1', '0'], p=transition_prob[last_char], size=1)[0]
+    if palindromic:
+        seed_reverse = np.flipud(seed)
+        if not even:
+            seed = np.append(seed, [0])
+        seed = np.append(seed, seed_reverse)
     return seed.tostring().decode('utf-8')
 
 
@@ -51,16 +60,13 @@ def main():
     while len(seeds) < num_seeds:
         prob_transition = probability_range[i]
     #    i += temperature
-        seed = make_entropy_seed(k-2, prob_transition)
+        seed = make_entropy_seed(k-2, prob_transition, palindromic=args.palindromic)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w and seed not in seeds:
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
-    #        temperature = int(1.5*temperature+100)
-    #    if temperature > 1:
-    #        temperature -= 1
-        if i == 2000:
+        if i == len(probability_range):
             i = 0
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])
     entropies_1 = calculate_entropy_vect(seeds, 2)
