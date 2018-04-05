@@ -66,6 +66,7 @@ def main():
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
+            print(seed, make_seeds.calculate_entropy(seed, 2), sep='\t', file=args.output)
         if i == len(probability_range):
             i = 0
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])
@@ -75,7 +76,7 @@ def main():
     data = pd.DataFrame({'2bit': entropies_1, '3bit': entropies_2, '4bit': entropies_3},
                         index=seeds,
                         columns=['2bit', '3bit', '4bit'])
-    data.to_csv(args.output, sep='\t')
+    # data.to_csv(args.output, sep='\t')
     print(data.describe())
 
 
