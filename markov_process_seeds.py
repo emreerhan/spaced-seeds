@@ -46,6 +46,7 @@ def main():
     args = parse_args()
     k = args.seed_length
     w = args.weight
+    out_file = open(args.output,'w') 
     # prob_transition = 1-args.transition_probability
     num_seeds = args.num_seeds
     np.random.seed(args.random_seed)
@@ -59,14 +60,14 @@ def main():
     # temperature = 1
     while len(seeds) < num_seeds:
         prob_transition = probability_range[i]
-    #    i += temperature
+        i += 1
         seed = make_entropy_seed(k-2, prob_transition, palindromic=args.palindromic)
         seed = "{}{}{}".format('1', seed, '1')
         if seed.count('1') == w and seed not in seeds:
             if len(seeds) % 50 == 0:
                 print('Seed: ', len(seeds))
             seeds.append(seed)
-            print(seed, make_seeds.calculate_entropy(seed, 2), sep='\t', file=args.output)
+            print(seed, make_seeds.calculate_entropy(seed, 2), sep='\t', file=out_file)
         if i == len(probability_range):
             i = 0
     calculate_entropy_vect = np.vectorize(make_seeds.calculate_entropy, excluded=['s_size'])
