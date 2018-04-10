@@ -58,6 +58,7 @@ def main():
         num_seeds, k, w, prob_min, prob_max))
     i = 0
     # temperature = 1
+    print('seeds', '2bit', sep='\t', file=out_file)
     while len(seeds) < num_seeds:
         prob_transition = probability_range[i]
         i += 1
