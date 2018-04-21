@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import pyfaidx
 import argparse
+from pprint import pprint
+# import matplotlib.pyplot as plt
 
 
 def parse_args():

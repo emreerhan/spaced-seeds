@@ -10,8 +10,7 @@ from scipy.special import comb
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="""Runs a number of spaced seeds against specified genomes
-                    to determine if seed entropy affects specificity.""")
+        description="""Randomly generate spaced seeds of given k and w, and calculate entropy.""")
     # parser.add_argument("-g", "--genomes", type=str, help="Paths to the genomes, comma delimited", required=True)
     parser.add_argument("-n", "--num-seeds", type=int, help="Number of spaced seeds to generate", required=True)
     parser.add_argument("-k", "--seed-length", type=int, help="Length of seeds", required=True)
@@ -134,40 +133,6 @@ def main():
     data.to_csv(args.output, sep='\t')
     print(data.describe())
 
-# def old_main():
-#     args = parse_args()
-#     genomes_paths = args.genomes.split(",")
-#     genomes = {}
-#     for genome_path in genomes_paths:
-#         genomes[genome_path] = pyfaidx.Fasta(genome_path)[0][0:]
-#     k = args.seed_length
-#     w = args.weight
-#     output = args.output
-#     output_file = open(output, 'w+', buffering=1)
-#     num_seeds = args.num_seeds
-#
-#     # seeds = get_random_seeds(k, w, 10)
-#     print("Seeds generated")
-#     calculate_entropy_vect = np.vectorize(calculate_entropy, excluded=['s_size'])
-#     seeds = ['100'*20, '101000'*10, '100010'*10]
-#     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
-#     # seeds = sample_seeds(seeds, entropies, num_seeds)
-#     data_cols = list(combinations(genomes.keys(), 2))
-#     entropies = calculate_entropy_vect(seeds, args.entropy_bits)
-#     entropy_data = pd.DataFrame(entropies, index=seeds, columns=['entropies'])
-#     print(entropy_data)
-#     kmer_data = np.zeros(shape=(num_seeds, len(genomes)), dtype=object)
-#     genome_kmers = {}
-#     index = 0
-#     print('seeds', '\t'.join([clean_header(str(i)) for i in combinations(genomes.keys(), 2)]), 'entropies', sep='\t', file=output_file)
-#     for seed in seeds:
-#         for genome_name, genome in genomes.items():
-#             genome_kmers[genome_name] = determine_words(genome, seed)
-#         pairwise_intersections = []
-#         for comb in combinations(genome_kmers.values(), 2):
-#             pairwise_intersections.append(str(len(set.intersection(*comb))))
-#         print(seeds[index], '\t'.join(pairwise_intersections), str(entropies[index]), sep='\t', file=output_file)
-#        index += 1
 
 if __name__ == '__main__':
     main()
